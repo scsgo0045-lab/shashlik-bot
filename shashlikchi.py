@@ -1,17 +1,25 @@
+import os
 import telebot
 import re
 
-TOKEN = "8537712976:AAGASMWToFMzLrvMVqQa9djTJhZG4RECRSI"
+# Render environment variable orqali token olinadi
+TOKEN = os.getenv("TOKEN")
 
 bot = telebot.TeleBot(TOKEN)
 
 warnings = {}
 adds_today = {}
 
+# =========================
+# START
+# =========================
 @bot.message_handler(commands=['start'])
 def start(message):
     bot.send_message(message.chat.id, "Shashlik Bot ishlayapti 🍢🔥")
 
+# =========================
+# Odam qo‘shishni hisoblash
+# =========================
 @bot.message_handler(content_types=['new_chat_members'])
 def count_adds(message):
     inviter_id = message.from_user.id
@@ -21,6 +29,9 @@ def count_adds(message):
 
     adds_today[inviter_id] += len(message.new_chat_members)
 
+# =========================
+# BUGUNGI TOP
+# =========================
 @bot.message_handler(commands=['top'])
 def top_today(message):
     if not adds_today:
@@ -34,11 +45,17 @@ def top_today(message):
                           reverse=True)
 
     for i, (user_id, count) in enumerate(sorted_users, start=1):
-        user = bot.get_chat_member(message.chat.id, user_id).user
-        text += f"{i}. {user.first_name} — {count} ta odam\n"
+        try:
+            user = bot.get_chat_member(message.chat.id, user_id).user
+            text += f"{i}. {user.first_name} — {count} ta odam\n"
+        except:
+            continue
 
     bot.send_message(message.chat.id, text)
 
+# =========================
+# ANTI LINK + WARN + BAN
+# =========================
 @bot.message_handler(func=lambda message: True)
 def anti_link(message):
 
@@ -55,18 +72,6 @@ def anti_link(message):
 
         bot.delete_message(message.chat.id, message.message_id)
 
-        user_id = message.from_user.id
+        user
 
-        if user_id not in warnings:
-            warnings[user_id] = 0
 
-        warnings[user_id] += 1
-
-        bot.send_message(message.chat.id,
-                         f"⚠️ {warnings[user_id]}/3 ogohlantirish")
-
-        if warnings[user_id] >= 3:
-            bot.ban_chat_member(message.chat.id, user_id)
-
-print("Bot ishga tushdi...")
-bot.infinity_polling()
