@@ -1,14 +1,21 @@
 import os
 import telebot
 import re
+from datetime import datetime
 
-# Render environment variable orqali token olinadi
+# =========================
+# TOKEN (Render Environment Variable)
+# =========================
 TOKEN = os.getenv("TOKEN")
+
+if not TOKEN:
+    raise ValueError("TOKEN topilmadi! Render Environment ga qo‘shing.")
 
 bot = telebot.TeleBot(TOKEN)
 
 warnings = {}
 adds_today = {}
+today_date = datetime.now().date()
 
 # =========================
 # START
@@ -22,6 +29,13 @@ def start(message):
 # =========================
 @bot.message_handler(content_types=['new_chat_members'])
 def count_adds(message):
+    global today_date, adds_today
+
+    # Har kuni reset
+    if datetime.now().date() != today_date:
+        adds_today = {}
+        today_date = datetime.now().date()
+
     inviter_id = message.from_user.id
 
     if inviter_id not in adds_today:
@@ -72,6 +86,25 @@ def anti_link(message):
 
         bot.delete_message(message.chat.id, message.message_id)
 
-        user
+        user_id = message.from_user.id
 
+        if user_id not in warnings:
+            warnings[user_id] = 0
 
+        warnings[user_id] += 1
+
+        if warnings[user_id] >= 3:
+            bot.ban_chat_member(message.chat.id, user_id)
+            bot.send_message(message.chat.id,
+                             f"{message.from_user.first_name} 3 ta ogohlantirish oldi va ban qilindi 🚫")
+            warnings[user_id] = 0
+        else:
+            bot.send_message(message.chat.id,
+                             f"{message.from_user.first_name} link yubormang! ⚠️ ({warnings[user_id]}/3)")
+
+# =========================
+# RUN BOT
+# =========================
+if __name__ == "__main__":
+    print("Bot ishga tushdi...")
+    bot.infinity_polling()
